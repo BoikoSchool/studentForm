@@ -29,12 +29,17 @@ export default function CanvasModal({
     }
   }, [visible]);
 
-  const startDrawing = (e: any) => {
-    setDrawing(true);
-    const ctx = canvasRef.current!.getContext("2d")!;
+  const getPos = (e: any) => {
     const rect = canvasRef.current!.getBoundingClientRect();
     const x = (e.clientX || e.touches?.[0].clientX) - rect.left;
     const y = (e.clientY || e.touches?.[0].clientY) - rect.top;
+    return { x, y };
+  };
+
+  const startDrawing = (e: any) => {
+    setDrawing(true);
+    const ctx = canvasRef.current!.getContext("2d")!;
+    const { x, y } = getPos(e);
     ctx.beginPath();
     ctx.moveTo(x, y);
   };
@@ -42,9 +47,7 @@ export default function CanvasModal({
   const draw = (e: any) => {
     if (!drawing) return;
     const ctx = canvasRef.current!.getContext("2d")!;
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const x = (e.clientX || e.touches?.[0].clientX) - rect.left;
-    const y = (e.clientY || e.touches?.[0].clientY) - rect.top;
+    const { x, y } = getPos(e);
     ctx.lineTo(x, y);
     ctx.stroke();
   };
@@ -60,16 +63,30 @@ export default function CanvasModal({
 
   const handleRecognize = async () => {
     if (!canvasRef.current) return;
+
     setLoading(true);
-    const dataUrl = canvasRef.current.toDataURL();
+    const dataUrl = canvasRef.current.toDataURL("image/png");
 
-    const worker = await createWorker("uk");
-    const { data } = await worker.recognize(dataUrl);
-    await worker.terminate();
+    try {
+      const worker = await createWorker({
+        logger: (m) => console.log(m), // можна прибрати, якщо не треба дебаг
+      });
 
-    onRecognize(data.text.trim());
-    setLoading(false);
-    onClose();
+      await worker.loadLanguage("uk");
+      await worker.initialize("uk");
+
+      const { data } = await worker.recognize(dataUrl);
+      await worker.terminate();
+
+      const recognizedText = data?.text?.trim() ?? "";
+      onRecognize(recognizedText);
+      onClose();
+    } catch (err) {
+      console.error("Помилка розпізнавання:", err);
+      alert("Не вдалося розпізнати текст");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!visible) return null;

@@ -15,7 +15,10 @@ function App() {
 
   const handleRecognize = (text: string) => {
     if (!activeField) return;
-    setForm((prev) => ({ ...prev, [activeField]: text }));
+    setForm((prev) => ({
+      ...prev,
+      [activeField]: text, // або додавати: prev[activeField] + '\n' + text
+    }));
   };
 
   return (
