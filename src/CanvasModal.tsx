@@ -68,13 +68,7 @@ export default function CanvasModal({
     const dataUrl = canvasRef.current.toDataURL("image/png");
 
     try {
-      const worker = await createWorker({
-        logger: (m) => console.log(m), // можна прибрати, якщо не треба дебаг
-      });
-
-      await worker.loadLanguage("uk");
-      await worker.initialize("uk");
-
+      const worker = await createWorker("uk"); // Працює у tesseract.js v6+
       const { data } = await worker.recognize(dataUrl);
       await worker.terminate();
 
